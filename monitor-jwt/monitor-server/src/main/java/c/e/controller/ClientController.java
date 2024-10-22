@@ -1,12 +1,14 @@
 package c.e.controller;
 
 import c.e.entity.RestBean;
+import c.e.entity.dto.Client;
+import c.e.entity.vo.request.ClientDetailVO;
+import c.e.entity.vo.request.RuntimeDetailVO;
 import c.e.service.ClientService;
+import c.e.utils.Const;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
 
 //用于处理客户端的
 @RestController
@@ -25,6 +27,23 @@ public class ClientController {
                                          ){
         return service.verifyAndRegister(token) ?
                 RestBean.success() : RestBean.failure(401,"客户端注册失败，请检查Token是否正确");
-
     }
+
+    //客户端上传基本信息
+    @PostMapping("/detail")
+    public RestBean<Void> updateClientDetails(@RequestAttribute(Const.ATTR_CLIENT) Client client,
+                                              @RequestBody @Valid ClientDetailVO vo){
+        service.updateClientDetail(vo,client);
+        return RestBean.success();
+    }
+
+    //客户端上传实时信息上报
+    @PostMapping("/runtime")
+    public RestBean<Void> updateRuntimeDetails(@RequestAttribute(Const.ATTR_CLIENT)Client client,
+                                               @RequestBody @Valid RuntimeDetailVO vo){
+        service.updateRuntimeDetail(vo,client);
+        return RestBean.success();
+    }
+
+
 }

@@ -1,4 +1,13 @@
+springdoc:
+  paths-to-match: /api/**
+  swagger-ui:
+    operations-sorter: alpha
 spring:
+  #InfluxDB数据库相关
+  influx:
+    url: http://8.137.23.208:8086/
+    user: zero
+    password: 333666999ok
   #邮件相关
   mail:
     host: smtp.qq.com
@@ -24,3 +33,17 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+  web:
+    verify:
+      mail-limit: 60
+    #限流相关
+    flow:
+      period: 5
+      limit: 100
+      block: 30
+    #跨域相关
+    cors:
+      origin: '*'
+      credentials: false
+      methods: '*'
+

@@ -57,6 +57,7 @@ public class JWTAuthorizeFilter extends OncePerRequestFilter {
                 if (client == null){
                     //没注册过，不允许访问接口
                     response.setStatus(401);
+                    response.setCharacterEncoding("utf-8");
                     response.getWriter().write(RestBean.failure(401,"未注册").asJsonString());
                     return;
                 }else{

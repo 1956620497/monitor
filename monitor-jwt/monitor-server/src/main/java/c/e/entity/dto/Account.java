@@ -25,6 +25,6 @@ public class Account implements BaseData {
     String role; //角色，权限
     Date registerTime; //用户注册时间
 
-    Date lastTime; //用户最后一次登录时间
+//    Date lastTime; //用户最后一次登录时间
 
 }

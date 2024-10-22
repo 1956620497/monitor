@@ -70,13 +70,13 @@ public class FlowLimitFilter extends HttpFilter {
             long increment = Optional.ofNullable(template.opsForValue().
                     increment(Const.FLOW_LIMIT_COUNTER + ip)).orElse(0L);
             //如果自增的请求大于10了,就封禁该ip 30秒
-            if (increment > 10){
+            if (increment > 500){
                 template.opsForValue().set(Const.FLOW_LIMIT_BLOCK + ip,"",30,TimeUnit.SECONDS);
                 return false;
             }
         }else{
             //如果没有计数键，就添加一个新的，该key只存在3秒钟，3秒后会重新设定一个新的
-            template.opsForValue().set(Const.FLOW_LIMIT_COUNTER + ip,"1",3, TimeUnit.SECONDS);
+            template.opsForValue().set(Const.FLOW_LIMIT_COUNTER + ip,"1",2, TimeUnit.SECONDS);
         }
         //其他情况返回真
         return true;

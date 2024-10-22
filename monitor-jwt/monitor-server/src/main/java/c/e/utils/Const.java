@@ -26,7 +26,14 @@ public class Const {
     //限流操作 被封禁的用户ip前缀
     public static final String FLOW_LIMIT_BLOCK = "flow:block:";
 
+    //监控系统客户端
     public static final String ATTR_CLIENT = "client";
+
+    //请求自定义属性
+    public final static String ATTR_USER_ID = "userId";
+
+    //用户角色
+    public final static String ROLE_DEFAULT = "admin";
 
 
 }

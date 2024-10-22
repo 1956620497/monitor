@@ -1,6 +1,7 @@
 package c.e.entity.dto;
 
 
+import c.e.entity.BaseData;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
@@ -12,10 +13,15 @@ import java.util.Date;
 @Data
 @TableName("db_client")
 @AllArgsConstructor
-public class Client {
+public class Client implements BaseData {
     @TableId
     Integer id;
     String name;
     String token;
+    //地区
+    String location;
+    //节点
+    String node;
+    //注册时间
     Date registerTime;
 }

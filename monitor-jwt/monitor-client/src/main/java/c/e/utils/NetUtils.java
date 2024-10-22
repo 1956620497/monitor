@@ -1,13 +1,16 @@
 package c.e.utils;
 
+import c.e.entity.BaseDatail;
 import c.e.entity.ConnectionConfig;
 import c.e.entity.Response;
+import c.e.entity.RuntimeDetail;
 import com.alibaba.fastjson2.JSONObject;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -53,6 +56,42 @@ public class NetUtils {
                     .header("Authorization",token)
                     .build();
             //创建对象
+            HttpResponse<String> response = client.send(request,HttpResponse.BodyHandlers.ofString());
+            return JSONObject.parseObject(response.body()).to(Response.class);
+        }catch (Exception e){
+            log.error("在发起服务端请求时出现问题",e);
+            return Response.errorResponse(e);
+        }
+    }
+
+    //系统基本信息上报
+    public void updateBaseDetails(BaseDatail datail){
+        Response response = this.doPost("/detail", datail);
+        if (response.success()){
+            log.info("系统的基本信息已更新完成");
+        }else{
+            log.error("系统基本信息更新失败:{}",response.message());
+        }
+    }
+
+    //系统详细信息实时上报
+    public void updateRuntimeDetails(RuntimeDetail detail){
+        Response response = this.doPost("/runtime",detail);
+        if (!response.success()){
+            log.warn("更新运行状态时，接收到服务端的异常响应内容:{}",response.message());
+        }
+    }
+
+    //向服务器发起请求,上传数据
+    private Response doPost(String url,Object data){
+        try{
+            String rawData = JSONObject.from(data).toJSONString();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .POST(HttpRequest.BodyPublishers.ofString(rawData))
+                    .uri(new URI(config.getAddress() + "/monitor" + url))
+                    .header("Authorization",config.getToken())
+                    .header("Content-Type","application/json")
+                    .build();
             HttpResponse<String> response = client.send(request,HttpResponse.BodyHandlers.ofString());
             return JSONObject.parseObject(response.body()).to(Response.class);
         }catch (Exception e){
