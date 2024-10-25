@@ -12,7 +12,6 @@ import oshi.hardware.NetworkIF;
 import oshi.software.os.OperatingSystem;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.NetworkInterface;
 import java.util.Arrays;
 import java.util.Date;
@@ -71,7 +70,7 @@ public class MonitorUtils {
         //不支持获取某一个时刻的设备使用情况
         //设定一个分析的时间,即统计时间
         //单位:秒
-        double statisticTime = 0.5;
+        double statisticTime = 1;
         try{
             //获取oshi
             HardwareAbstractionLayer hardware = info.getHardware();
@@ -91,8 +90,14 @@ public class MonitorUtils {
             double write = hardware.getDiskStores().stream().mapToLong(HWDiskStore::getWriteBytes).sum();
             //获取CPU的各项指标，这些数据是保存在数组中的    需要根据时间进行计算
             long[] ticks = processor.getSystemCpuLoadTicks();
+
+            //获取初始的CPU tick数  新
+            long[] prevTicks = processor.getSystemCpuLoadTicks();
             //设置休眠线程时间       Thread.sleep() 需要以毫秒为单位
             Thread.sleep((long)(statisticTime * 1000));
+            //暂停时间后再次获取CPU tick数  新
+            long[] ticks2 = processor.getSystemCpuLoadTicks();
+
             //开始计算
             //然后需要获取一次最新的网卡状态
             networkInterface = Objects.requireNonNull(this.findNetworkInterface(hardware));
@@ -114,7 +119,9 @@ public class MonitorUtils {
                     //计算剩余空间     总容量-空闲容量=已用掉的容量
                     .mapToLong(file -> file.getTotalSpace() - file.getFreeSpace()).sum() / 1024.0 / 1024 / 1024;
             return new RuntimeDetail()
-                    .setCpuUsage(this.calculateCpuUsage(processor,ticks))
+//                    .setCpuUsage(this.calculateCpuUsage(processor,ticks))
+                    //换一种方式计算CPU的使用率
+                    .setCpuUsage(cpuUsage(prevTicks,ticks2))
                     .setMemoryUsage(memory)
                     .setDiskUsage(disk)
                     .setNetworkUpload(upload / 1024)  //单位KB
@@ -129,9 +136,7 @@ public class MonitorUtils {
     }
 
     //运行时CPU信息
-
     /**
-     *
      * @param processor
      * @param prevTicks CPU各项数据指标
      * @return  当前CPU使用情况
@@ -161,6 +166,20 @@ public class MonitorUtils {
         return (cSys + cUser) * 1.0 / totalCpu;
 //        return (totalCpu - idle) * 1.0 / totalCpu;
     }
+
+    //换一种CPU使用率计算方式
+    public double cpuUsage(long[] prevTicks,long[] ticks){
+        long totalCpu = 0;
+        for (int i = 0; i < CentralProcessor.TickType.values().length; i++) {
+            totalCpu += ticks[i] - prevTicks[i];
+        }
+        double cpuUsage = (double) (totalCpu - (ticks[CentralProcessor.TickType.IDLE.getIndex()] -
+                prevTicks[CentralProcessor.TickType.IDLE.getIndex()])) / totalCpu;
+        log.error(String.valueOf(cpuUsage));
+        return cpuUsage;
+    }
+
+
 
     //获取ip
     /**
