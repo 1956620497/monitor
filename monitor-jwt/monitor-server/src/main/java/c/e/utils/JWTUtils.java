@@ -151,6 +151,7 @@ public class JWTUtils {
 
     //将token拉入黑名单
     public boolean deleteToken(String uuid,Date time){
+
         //判断token是否失效
         if (this.isInvalidToken(uuid))
             return false;

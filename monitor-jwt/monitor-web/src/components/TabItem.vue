@@ -1,3 +1,6 @@
+<!--自己写的导航栏组件-->
+
+
 <script setup>
 defineProps({
   // 导航栏名字

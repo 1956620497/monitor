@@ -24,6 +24,10 @@ public class MonitorController {
     //获取服务器列表
     @GetMapping("/list")
     public RestBean<List<ClientPreviewVO>> listAllClient() {
+        List<ClientPreviewVO> clients = service.listClients();
+        //如果获取数据为空，有可能是没有主机，有可能是出现了异常
+        if (clients == null)
+            return RestBean.failure(200,"还没有添加新主机哦,如果已添加过主机，服务器可能内部出错，请联系管理员！");
         return RestBean.success(service.listClients());
     }
 
@@ -58,6 +62,19 @@ public class MonitorController {
     @GetMapping("/runtime-now")
     public RestBean<RuntimeDetailVO> runtimeDetailsNow(int clientId){
         return RestBean.success(service.clientRuntimeDetailsNow(clientId));
+    }
+
+    //前端添加新主机时，返回Token
+    @GetMapping("/register")
+    public RestBean<String> registerToken(){
+        return RestBean.success(service.registerToken());
+    }
+
+    //前端删除主机
+    @GetMapping("/delete")
+    public RestBean<String> deleteClient(int clientId){
+        service.deleteClient(clientId);
+        return RestBean.success();
     }
 
 }

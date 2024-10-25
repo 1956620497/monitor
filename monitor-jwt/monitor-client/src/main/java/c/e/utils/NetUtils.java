@@ -29,7 +29,6 @@ public class NetUtils {
     @Resource
     ConnectionConfig config;
 
-    //定制超时时间什么的后面再设置
     //注册服务器
     public boolean registerToServer(String address,String token) {
         log.info("正在向服务端注册，请稍后...");

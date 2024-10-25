@@ -14,9 +14,13 @@ import java.util.Date;
 @TableName("db_client")
 @AllArgsConstructor
 public class Client implements BaseData {
+
+    //客户端id
     @TableId
     Integer id;
+    //客户端名字
     String name;
+    //客户端token
     String token;
     //地区
     String location;

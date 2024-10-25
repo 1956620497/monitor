@@ -50,4 +50,7 @@ public interface ClientService extends IService<Client> {
 
     //获取当前的数据
     RuntimeDetailVO clientRuntimeDetailsNow(int clientId);
+
+    //删除主机
+    void deleteClient(int clientId);
 }

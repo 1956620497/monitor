@@ -56,6 +56,9 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
     //初始化方法，在第一时间调用该方法查出数据并放入缓存
     @PostConstruct
     public void initClientCache(){
+        //清空一下缓存,因为删除主机时，原有的缓存是不会自动删除的
+        clientTokenCache.clear();
+        clientIdCache.clear();
         //将所有的客户端查出来
         this.list().forEach(this::addClientCache);
     }
@@ -80,7 +83,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
             //生成一个ID
             int id = this.randomClientId();
             //创建客户端实体对象
-            Client client = new Client(id,"未命名主机","cn","未命名节点",token,new Date());
+            Client client = new Client(id,"未命名主机",token,"cn","未命名节点",new Date());
             if (this.save(client)) {
                 //如果插入成功,重新生成一条token
                 registerToken = this.generateNewToken();
@@ -94,6 +97,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
     //保存上报数据
     @Override
     public void updateClientDetail(ClientDetailVO vo, Client client) {
+        //详细数据对象
         ClientDetail detail= new ClientDetail();
         BeanUtils.copyProperties(vo,detail);
         detail.setId(client.getId());
@@ -131,6 +135,9 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
     //向网页端发送数据
     @Override
     public List<ClientPreviewVO> listClients() {
+        if (clientIdCache.values().isEmpty())
+            return null;
+
         //取出所有缓存
         return clientIdCache.values().stream().map(client -> {
             ClientPreviewVO vo = client.asViewObject(ClientPreviewVO.class);
@@ -205,7 +212,21 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
         return currentRuntime.get(clientId);
     }
 
-    //更新缓存方法
+    //删除主机
+    @Override
+    public void deleteClient(int clientId) {
+        //数据库删除客户端id
+        this.removeById(clientId);
+        //详细信息删除
+        detailMapper.deleteById(clientId);
+        //刷新缓存
+        this.initClientCache();
+        //运行时数据也删除掉
+        currentRuntime.remove(clientId);
+        //InfluxDB数据库不用删除，因为一天后数据会自动删除，所以没有删除的必要
+    }
+
+    //新增缓存方法
     private void addClientCache(Client client){
         clientIdCache.put(client.getId(),client);
         clientTokenCache.put(client.getToken(),client);
@@ -224,7 +245,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
         StringBuilder sb = new StringBuilder(24);
         for (int i=0;i<24;i++)
             sb.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
-        System.out.println(sb);
         return sb.toString();
     }
+
 }

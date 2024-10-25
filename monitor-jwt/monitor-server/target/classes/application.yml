@@ -33,3 +33,17 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+  web:
+    verify:
+      mail-limit: 60
+    #限流相关
+    flow:
+      period: 5
+      limit: 100
+      block: 30
+    #跨域相关
+    cors:
+      origin: '*'
+      credentials: false
+      methods: '*'
+

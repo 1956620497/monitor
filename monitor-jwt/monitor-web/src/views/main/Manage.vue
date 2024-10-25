@@ -3,13 +3,14 @@ import PreviewCard from "@/components/PreviewCard.vue";
 import {reactive, ref} from "vue";
 import {get} from "@/net";
 import ClientDetails from "@/components/ClientDetails.vue";
+import RegisterCard from "@/components/RegisterCard.vue";
+import {Plus} from "@element-plus/icons-vue";
 
 //主机数据存放
 const list = ref([])
 //获取数据请求
 const updateList = () => get('/api/monitor/list',data => {
   list.value = data
-  console.log(list.value)
 })
 //设置定时器,每10秒钟执行一次
 setInterval(updateList,10000)
@@ -29,26 +30,49 @@ const displayClientDeatils = (id) => {
   detail.id = id
 }
 
+//新增主机相关
+const register = reactive({
+  show:false,
+  token:''
+})
+
+//获取最新的Token
+const refreshToken = () => get('/api/monitor/register',token => register.token = token)
+
+
 </script>
 <!--管理页面-->
 <template>
   <div class="manage-main">
-    <div class="title">
-      <i class="fa-solid fa-server"></i>
-      管理主机列表
+    <div style="display: flex;justify-content: space-between;align-items: end">
+      <div>
+        <div class="title">
+          <i class="fa-solid fa-server"></i>
+          管理主机列表
+        </div>
+        <div class="desc">在这里管理所有已经注册的主机实例，实时监控主机运行状态，快速进行管理和操作。</div>
+      </div>
+      <div>
+        <el-button :icon="Plus" type="primary" @click="register.show = true" plain>添加新主机</el-button>
+      </div>
     </div>
-    <div class="desc">在这里管理所有已经注册的主机实例，实时监控主机运行状态，快速进行管理和操作。</div>
+
     <el-divider style="margin: 10px 0" />
 <!--    主机卡片-->
-    <div class="card-list">
+    <div class="card-list" v-if="list !== null && list.length ">
       <preview-card v-for="item in list" :data="item" :update="updateList"
                     @click="displayClientDeatils(item.id)"/>
     </div>
+    <el-empty description="还没有任何主机,点击右上角添加" v-else />
 <!--    主机详细信息-->
 <!--    v-if="list.length" 列表没初始化完成时，不加载这个东西-->
     <el-drawer size="520" :show-close="false" v-model="detail.show"
-               :with-header="false" v-if="list.length" @close="detail.id = -1">
-      <client-details :id="detail.id" :update="updateList" />
+               :with-header="false" v-if="list !== null && list.length" @close="detail.id = -1">
+      <client-details :id="detail.id" :update="updateList" @delete="updateList" />
+    </el-drawer>
+    <el-drawer v-model="register.show" direction="ttb" :with-header="false" @open="refreshToken"
+               style="width: 600px;margin: 10px auto" size="320">
+      <register-card :token="register.token"   />
     </el-drawer>
   </div>
 </template>

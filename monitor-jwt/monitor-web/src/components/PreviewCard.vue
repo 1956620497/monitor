@@ -1,3 +1,6 @@
+<!--主机信息预览的卡片-->
+
+
 <script setup>
 import {copyIp, fitByUnit, percentageToStatus, rename} from '@/tools'
 
