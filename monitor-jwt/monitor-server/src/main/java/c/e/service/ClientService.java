@@ -1,13 +1,8 @@
 package c.e.service;
 
 import c.e.entity.dto.Client;
-import c.e.entity.vo.request.ClientDetailVO;
-import c.e.entity.vo.request.RenameClientVO;
-import c.e.entity.vo.request.RenameNodeVO;
-import c.e.entity.vo.request.RuntimeDetailVO;
-import c.e.entity.vo.response.ClientDetailsVO;
-import c.e.entity.vo.response.ClientPreviewVO;
-import c.e.entity.vo.response.RuntimeHistoryVO;
+import c.e.entity.vo.request.*;
+import c.e.entity.vo.response.*;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
@@ -33,8 +28,11 @@ public interface ClientService extends IService<Client> {
     //实时上报数据
     void updateRuntimeDetail(RuntimeDetailVO vo,Client client);
 
-    //向网页端发送数据
+    //获取主机列表
     List<ClientPreviewVO> listClients();
+
+    //获取简单的主机数据
+    List<ClientSimpleVO> listSimpleList();
 
     //修改主机名字
     void renameClient(RenameClientVO vo);
@@ -53,4 +51,12 @@ public interface ClientService extends IService<Client> {
 
     //删除主机
     void deleteClient(int clientId);
+
+    //保存SSH连接信息
+    void saveClientSshConnection(SshConnectionVO vo);
+
+    //获取SSH连接信息
+    SshSettingsVO sshSettings(int clientId);
+
+
 }

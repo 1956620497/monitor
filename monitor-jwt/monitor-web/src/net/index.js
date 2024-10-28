@@ -1,5 +1,6 @@
 import axios from  'axios'
 import {ElMessage} from "element-plus";
+import {useStore} from "@/store";
 
 
 const authItemName = "access_token"
@@ -115,6 +116,11 @@ function login(username,password,remember,success,failure = defaultFailure){
     },(data) => {
         //存储AccessToken
         storeAccessToken(data.token,remember,data.expire)
+        //存储到持久化插件中
+        const store = useStore()
+        store.user.role = data.role
+        store.user.username = data.username
+        store.user.email = data.email
         //成功回调
         ElMessage.success(`登录成功,欢迎${data.username}来到系统`)
         success(data)

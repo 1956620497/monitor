@@ -83,6 +83,13 @@ public class JWTUtils {
             //判断JWT是否被拉黑
             if (this.isInvalidToken(verify.getId()))
                 return null;
+
+            //判断当前用户有没有被拉黑，与上面的区别是，上面是判断token是否被拉黑，这里判断用户是否被拉黑
+            if (this.isInvalidUser(verify.getClaim("id").asInt()))
+                return null;
+//            Map<String,Claim> claims = verify.getClaims();
+//            return new Date().after(claims.get("exp").asDate()) ? null : verify;
+
             //查看令牌是否过期
             //首先获取令牌过去的日期
             Date expiresAt = verify.getExpiresAt();
@@ -150,6 +157,12 @@ public class JWTUtils {
     }
 
     //将token拉入黑名单
+    /**
+     * 将token拉入redis黑名单中
+     * @param uuid  令牌ID
+     * @param time  过期时间
+     * @return  是否操作成功
+     */
     public boolean deleteToken(String uuid,Date time){
 
         //判断token是否失效
@@ -165,7 +178,22 @@ public class JWTUtils {
         return true;
     }
 
+    //将用户token拉入黑名单
+    public void deleteUser(int uid){
+        template.opsForValue().set(Const.USER_BLACK_LIST + uid,"",expire,TimeUnit.HOURS);
+    }
+
+    //查询是否是无效用户
+    public boolean isInvalidUser(int uid){
+        return Boolean.TRUE.equals(template.hasKey(Const.USER_BLACK_LIST + uid));
+    }
+
     //判断令牌是否过期失效
+    /**
+     * 验证token是否被列入Redis黑名单
+     * @param uuid  令牌ID
+     * @return  是否操作成功
+     */
     public boolean isInvalidToken(String uuid){
         //在redis的黑名单中查找有没有这个令牌
         return Boolean.TRUE.equals(template.hasKey(Const.JWT_BLACK_LIST + uuid));

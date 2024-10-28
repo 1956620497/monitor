@@ -2,15 +2,12 @@ package c.e.service.impl;
 
 import c.e.entity.dto.Client;
 import c.e.entity.dto.ClientDetail;
-import c.e.entity.vo.request.ClientDetailVO;
-import c.e.entity.vo.request.RenameClientVO;
-import c.e.entity.vo.request.RenameNodeVO;
-import c.e.entity.vo.request.RuntimeDetailVO;
-import c.e.entity.vo.response.ClientDetailsVO;
-import c.e.entity.vo.response.ClientPreviewVO;
-import c.e.entity.vo.response.RuntimeHistoryVO;
+import c.e.entity.dto.ClientSsh;
+import c.e.entity.vo.request.*;
+import c.e.entity.vo.response.*;
 import c.e.mapper.ClientMapper;
 import c.e.mapper.ClientDetailMapper;
+import c.e.mapper.ClientSshMapper;
 import c.e.service.ClientService;
 import c.e.utils.InfluxDbUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -52,6 +49,9 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
     //InfluxDB数据库
     @Resource
     InfluxDbUtils influx;
+
+    @Resource
+    ClientSshMapper sshMapper;
 
     //初始化方法，在第一时间调用该方法查出数据并放入缓存
     @PostConstruct
@@ -132,7 +132,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
         influx.writeRuntimeData(client.getId(),vo);
     }
 
-    //向网页端发送数据
+    //获取主机列表
     @Override
     public List<ClientPreviewVO> listClients() {
         if (clientIdCache.values().isEmpty())
@@ -152,6 +152,16 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
                 BeanUtils.copyProperties(runtime,vo);
                 vo.setOnline(true);
             }
+            return vo;
+        }).toList();
+    }
+
+    //获取简单主机列表
+    @Override
+    public List<ClientSimpleVO> listSimpleList() {
+        return clientIdCache.values().stream().map(client -> {
+            ClientSimpleVO vo = client.asViewObject(ClientSimpleVO.class);
+            BeanUtils.copyProperties(detailMapper.selectById(vo.getId()),vo);
             return vo;
         }).toList();
     }
@@ -224,6 +234,38 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, Client> impleme
         //运行时数据也删除掉
         currentRuntime.remove(clientId);
         //InfluxDB数据库不用删除，因为一天后数据会自动删除，所以没有删除的必要
+    }
+
+    //保存ssh连接信息
+    @Override
+    public void saveClientSshConnection(SshConnectionVO vo) {
+        //先从缓存中取
+        Client client = clientIdCache.get(vo.getId());
+        if (client == null) return;
+        ClientSsh ssh = new ClientSsh();
+        BeanUtils.copyProperties(vo,ssh);
+//        ClientDetail detail = detailMapper.selectById(vo.getId());
+//        vo.setIp(detail.getIp());
+        if (Objects.nonNull(sshMapper.selectById(client.getId()))){
+            sshMapper.updateById(ssh);
+        }else {
+            sshMapper.insert(ssh);
+        }
+    }
+
+    //获取ssh连接信息
+    @Override
+    public SshSettingsVO sshSettings(int clientId) {
+        ClientDetail detail = detailMapper.selectById(clientId);
+        ClientSsh ssh = sshMapper.selectById(clientId);
+        SshSettingsVO vo;
+        if (ssh == null){
+            vo = new SshSettingsVO();
+        }else {
+            vo = ssh.asViewObject(SshSettingsVO.class);
+        }
+        vo.setIp(detail.getIp());
+        return vo;
     }
 
     //新增缓存方法

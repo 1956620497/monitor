@@ -4,6 +4,7 @@ import c.e.entity.RestBean;
 import c.e.entity.vo.request.ConfirmResetVO;
 import c.e.entity.vo.request.EmailResetVo;
 import c.e.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -26,8 +27,9 @@ public class AuthorizeController {
     AccountService service;
     //get请求用请求方式的参数接收
     @GetMapping("/ask-code") //发送邮件返回成功或失败，所以data信息就不需要
+    @Operation(summary = "请求邮件验证码")
     public RestBean<Void> askVerifyCode(@RequestParam("email") @Email String email,  //用户邮箱参数
-                                        @RequestParam("type") @Pattern(regexp = "(register|reset)") String type,  //判断是申请注册还是重置密码
+                                        @RequestParam("type") @Pattern(regexp = "(reset|modify)") String type,  //判断是申请注册还是重置密码
                                         HttpServletRequest request){ //根据ip地址判断不要让用户重复请求
         return this.messageHandle(() -> service.registerEmailVerifyCode(type,email,request.getRemoteAddr()));
     }

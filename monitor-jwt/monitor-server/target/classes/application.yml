@@ -12,13 +12,13 @@ spring:
   mail:
     host: smtp.qq.com
     username: 3467332725@qq.com
-    password: oqtclvifkfmochgf
+    password: ocunsnqbbqriciid
   rabbitmq:
     #消息中间件的地址
     addresses: 8.137.23.208
     username: hero
     password: 123456
-    virtual-host: /test
+    virtual-host: /monitor
   security:
     #security拦截器的默认优先级，默认为-100
     filter:

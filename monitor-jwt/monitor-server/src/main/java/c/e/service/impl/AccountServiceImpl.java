@@ -2,11 +2,16 @@ package c.e.service.impl;
 
 import c.e.entity.dto.Account;
 import c.e.entity.vo.request.ConfirmResetVO;
+import c.e.entity.vo.request.CreateSubAccountVO;
 import c.e.entity.vo.request.EmailResetVo;
+import c.e.entity.vo.request.ModifyEmailVO;
+import c.e.entity.vo.response.SubAccountVO;
 import c.e.mapper.AccountMapper;
 import c.e.service.AccountService;
 import c.e.utils.Const;
 import c.e.utils.FlowUtils;
+import c.e.utils.JWTUtils;
+import com.alibaba.fastjson2.JSONArray;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
@@ -18,6 +23,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +47,10 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
     //引入加密工具
     @Resource
     PasswordEncoder encoder;
+
+    //引入jwt工具类
+    @Resource
+    JWTUtils jwt;
 
 
     //登录时查询用户信息
@@ -95,10 +106,6 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
         return utils.limitOnceCheck(key,60);
     }
 
-
-
-
-
     //重置密码 第一层验证-- 验证邮箱验证码是否正确
     @Override
     public String resetConfirm(ConfirmResetVO vo) {
@@ -130,4 +137,88 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
         }
         return null;
     }
+
+    //修改密码
+    @Override
+    public boolean changePassword(int id, String oldPass, String newPass) {
+        //查询该账户
+        Account account = this.getById(id);
+        //取出老密码
+        String password = account.getPassword();
+        //判断用户输入与数据库中的密码是否相同
+        if (!encoder.matches(oldPass,password))
+            return false;
+        //修改数据库
+        this.update(Wrappers.<Account>update().eq("id",id)
+                .set("password",encoder.encode(newPass)));
+        return true;
+    }
+
+    //创建子账户
+    @Override
+    public String createSubAccount(CreateSubAccountVO vo) {
+        //校验一下,通过邮箱查询一下
+        Account account = this.findAccountByNameOrEmail(vo.getEmail());
+        if (account != null)
+//            throw new IllegalArgumentException("该电子邮件已被注册");
+            return "此电子邮件已被注册";
+        //通过id查询一下
+        account = this.findAccountByNameOrEmail(vo.getUsername());
+        if (account != null)
+//            throw new IllegalArgumentException("该用户名已被注册");
+            return "该用户名已被注册";
+        //创建用户对象
+        account = new Account(null,vo.getUsername(),encoder.encode(vo.getPassword()),
+                vo.getEmail(),Const.ROLE_NORMAL,new Date(), JSONArray.copyOf(vo.getClients()).toJSONString());
+        this.save(account);
+        return null;
+    }
+
+    //删除子账户
+    @Override
+    public void deleteSubAccount(int uid) {
+        //在数据库中删除账号
+        this.removeById(uid);
+        //并且要在缓存中将该用户的token拉黑，不允许该账户登录
+        jwt.deleteUser(uid);
+    }
+
+    //查询子账户列表
+    @Override
+    public List<SubAccountVO> listSubAccount() {
+        return this.list(Wrappers.<Account>query().eq("role",Const.ROLE_NORMAL))
+                .stream().map(account -> {
+                    SubAccountVO vo = account.asViewObject(SubAccountVO.class);
+                    vo.setClientList(JSONArray.parse(account.getClients()));
+                    return vo;
+                }).toList();
+    }
+
+    //修改邮箱
+    @Override
+    public String modifyEmail(int id, ModifyEmailVO vo) {
+        String code = getEmailVerifyCode(vo.getEmail());
+        if (code == null) return "请先获取验证码";
+        if (!code.equals(vo.getCode())) return "验证码错误，请重新输入";
+        this.deleteEmailVerifyCode(vo.getEmail());
+        Account account = this.findAccountByNameOrEmail(vo.getEmail());
+        if (account != null && account.getId() != id) return "该邮箱账号已经被其他账号绑定,无法完成操作";
+        this.update()
+                .set("email",vo.getEmail())
+                .eq("id",id)
+                .update();
+        return null;
+    }
+
+    //获取缓存中的验证码
+    private String getEmailVerifyCode(String email){
+        return stringRedisTemplate.opsForValue().get(Const.VERIFY_EMAIL_DATA + email);
+    }
+
+    //删除缓存中的验证码
+    private void deleteEmailVerifyCode(String email){
+        String key = Const.VERIFY_EMAIL_DATA + email;
+        stringRedisTemplate.delete(key);
+    }
+
 }

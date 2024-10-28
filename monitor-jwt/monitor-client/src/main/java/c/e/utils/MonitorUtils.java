@@ -13,6 +13,7 @@ import oshi.software.os.OperatingSystem;
 
 import java.io.File;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
@@ -76,6 +77,10 @@ public class MonitorUtils {
             HardwareAbstractionLayer hardware = info.getHardware();
             //拿到网络数据，因为要监测读写
             NetworkIF networkInterface = Objects.requireNonNull(this.findNetworkInterface(hardware));
+
+            //换一种方式拿到网卡
+//            NetworkIF networkInterface = Objects.requireNonNull(this.newNetwork(hardware));
+
             //获取CPU运行时信息
             CentralProcessor processor = hardware.getProcessor();
             //读取网络上传多少字节的数据     getBytesSent()返回发送了多少字节的数据
@@ -91,12 +96,28 @@ public class MonitorUtils {
             //获取CPU的各项指标，这些数据是保存在数组中的    需要根据时间进行计算
             long[] ticks = processor.getSystemCpuLoadTicks();
 
+
+            //计算网络
+//            double upload1 = this.newNetwork(hardware).getBytesSent();
+//            double download1 = this.newNetwork(hardware).getBytesRecv();
+
             //获取初始的CPU tick数  新
             long[] prevTicks = processor.getSystemCpuLoadTicks();
             //设置休眠线程时间       Thread.sleep() 需要以毫秒为单位
             Thread.sleep((long)(statisticTime * 1000));
             //暂停时间后再次获取CPU tick数  新
             long[] ticks2 = processor.getSystemCpuLoadTicks();
+
+            //计算网络
+//            double upload2 = this.newNetwork(hardware).getBytesSent();
+//            double download2 = this.newNetwork(hardware).getBytesRecv();
+
+            //计算
+//            double download3 = (download2 - download1) / statisticTime;
+//            double upload3 = (upload2 - upload1) / statisticTime;
+
+//            System.err.println("下载速度:" + download3);
+//            System.err.println("上传速度:" + upload3);
 
             //开始计算
             //然后需要获取一次最新的网卡状态
@@ -119,13 +140,17 @@ public class MonitorUtils {
                     //计算剩余空间     总容量-空闲容量=已用掉的容量
                     .mapToLong(file -> file.getTotalSpace() - file.getFreeSpace()).sum() / 1024.0 / 1024 / 1024;
             return new RuntimeDetail()
-//                    .setCpuUsage(this.calculateCpuUsage(processor,ticks))
+                    .setCpuUsage(this.calculateCpuUsage(processor,ticks))
                     //换一种方式计算CPU的使用率
-                    .setCpuUsage(cpuUsage(prevTicks,ticks2))
+//                    .setCpuUsage(cpuUsage(prevTicks,ticks2))
                     .setMemoryUsage(memory)
                     .setDiskUsage(disk)
                     .setNetworkUpload(upload / 1024)  //单位KB
                     .setNetworkDownload(download / 1024)  //单位KB
+
+//                    .setNetworkUpload(upload3)
+//                    .setNetworkDownload(download3)
+
                     .setDiskRead(read / 1024 / 1024 )    //单位MB
                     .setDiskWrite(write / 1024 / 1024 )   //单位MB
                     .setTimestamp(new Date().getTime());
@@ -175,8 +200,8 @@ public class MonitorUtils {
         }
         double cpuUsage = (double) (totalCpu - (ticks[CentralProcessor.TickType.IDLE.getIndex()] -
                 prevTicks[CentralProcessor.TickType.IDLE.getIndex()])) / totalCpu;
-        log.error(String.valueOf(cpuUsage));
-        return cpuUsage;
+        log.error(String.valueOf(cpuUsage * 100));
+        return cpuUsage * 100;
     }
 
 
@@ -185,7 +210,7 @@ public class MonitorUtils {
     /**
      * 获取当前正在使用的网卡，可能有多块网卡，这里就获取当前正在使用的网卡
      * @param hardware  获取当前系统中的所有信息
-     * @return  本地IP地址
+     * @return  本地IP地址  有ip地址的网卡
      */
     private NetworkIF findNetworkInterface(HardwareAbstractionLayer hardware){
         try{
@@ -211,4 +236,21 @@ public class MonitorUtils {
         }
         return null;
     }
+
+
+    //换一种方法获取网卡
+    public NetworkIF newNetwork(HardwareAbstractionLayer hardware) throws SocketException {
+        for (NetworkIF net : hardware.getNetworkIFs()){
+            NetworkInterface ni = net.queryNetworkInterface();
+            // 排除本地回环网卡
+            if (!ni.isLoopback() && (net.getBytesRecv() > 0 || net.getBytesSent() > 0)) {
+                System.out.println("正在使用的网卡: " + net.getDisplayName());
+                String ip = Objects.requireNonNull(net).getIPv4addr()[0];
+                System.out.println("正在使用的ip" + ip);
+                return net;
+            }
+        }
+        return null;
+    }
+
 }

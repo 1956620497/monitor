@@ -11,6 +11,7 @@ import java.util.Date;
 public class AuthorizeVo implements BaseData {
 
     String username;
+    String email;
     String role;
     String token;
     Date expire;

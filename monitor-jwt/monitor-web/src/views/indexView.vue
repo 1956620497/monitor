@@ -6,6 +6,7 @@ import {useDark} from "@vueuse/core";
 import {ref} from "vue";
 import TabItem from "@/components/TabItem.vue";
 import {useRoute} from "vue-router";
+import {useStore} from "@/store";
 
 function userLogout(){
   logout(()=> router.push('/'))
@@ -41,6 +42,8 @@ function changePage(item){
   router.push({name: item.route})
 }
 
+//判断是不是管理员
+const store = useStore()
 
 
 </script>
@@ -58,6 +61,15 @@ function changePage(item){
         <el-switch style="margin: 0 20px" v-model="dark"
                    active-color="#424242" :active-action-icon="Moon"
                    :inactive-action-icon="Sunny" />
+<!--       账户邮箱 -->
+        <div style="text-align: right;line-height: 16px;margin-right: 10px">
+          <div>
+            <el-tag type="success" v-if="store.isAdmin" size="small">管理员</el-tag>
+            <el-tag v-else size="small">子账户</el-tag>
+            {{store.user.username}}
+          </div>
+          <div style="font-size: 13px;color: grey">{{store.user.email}}</div>
+        </div>
 <!--        头像-->
         <el-dropdown>
           <el-avatar class="avatar"
@@ -77,7 +89,11 @@ function changePage(item){
 <!--      配置主页面路由-->
       <router-view v-slot="{ Component }">
         <transition name="el-fade-in-linear" mode="out-in">
-          <component :is="Component" />
+<!--          keep-alive用来切换组件时，避免组件重复渲染，只保留状态和DOM，
+exclude用来排除组件的，也就是排除Security组件-->
+          <keep-alive exclude="Security">
+            <component :is="Component" />
+          </keep-alive>
         </transition>
       </router-view>
 

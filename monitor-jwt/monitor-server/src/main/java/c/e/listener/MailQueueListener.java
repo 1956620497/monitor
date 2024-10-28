@@ -15,6 +15,7 @@ import java.util.Map;
 @RabbitListener(queues = "mail")
 public class MailQueueListener {
 
+    //邮件发送框架
     @Resource
     JavaMailSender sender;
 
@@ -36,6 +37,10 @@ public class MailQueueListener {
                     "您的密码重置邮件",
                     "您好，您正在进行重置密码操作，验证码：" + code + ",有效时间三分钟，如非本人操作，请检查您的账号是否泄露。",
                     email);
+            case "modify" ->
+                createMessage("您的邮件修改验证邮件",
+                        "您好，您正在绑定新的电子邮箱，验证码: " + code + ",有效时间3分钟,如非本人操作，请无视。",
+                        email);
             default -> null;
         };
         //判断邮件是否正确

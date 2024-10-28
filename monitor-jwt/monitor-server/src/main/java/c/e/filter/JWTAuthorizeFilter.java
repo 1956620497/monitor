@@ -1,7 +1,9 @@
 package c.e.filter;
 
 import c.e.entity.RestBean;
+import c.e.entity.dto.Account;
 import c.e.entity.dto.Client;
+import c.e.service.AccountService;
 import c.e.service.ClientService;
 import c.e.utils.Const;
 import c.e.utils.JWTUtils;
@@ -11,6 +13,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jogamp.nativewindow.windows.AccentPolicy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 //验证token
 
@@ -82,14 +86,43 @@ public class JWTAuthorizeFilter extends OncePerRequestFilter {
                 //将一个经过身份验证的用户认证对象设置到security的安全上下文中，以便在整个应用程序范围内访问和使用这个身份验证信息。
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 //将用户信息存到公共域对象中，为了后续更加方便的取用，在后续可以用request.getAttribute("id")来去出值
-                request.setAttribute("id",utils.toId(jwt));
-                //
+                request.setAttribute(Const.ATTR_USER_ID,utils.toId(jwt));
+                //将用户角色读取出来，然后再塞进去
+                request.setAttribute(Const.ATTR_USER_ROLE,
+                        new ArrayList<>(user.getAuthorities()).get(0).getAuthority());
+
+                //验证建立SSH连接的请求有没有权限
+                //这里写的感觉怪怪的，判断请求地址开头是否是ssh连接的地址，并且没有权限
+                //感觉这样有些不妥，后面再重新做
+                if (request.getRequestURI().startsWith("/terminal/") && !accessShell(
+                        (Integer) request.getAttribute(Const.ATTR_USER_ID),
+                        (String) request.getAttribute(Const.ATTR_USER_ROLE),
+                        Integer.parseInt(request.getRequestURI().substring(10)))){
+                    //返回错误信息
+                    response.setStatus(401);
+                    response.setCharacterEncoding("utf-8");
+                    response.getWriter().write(RestBean.failure(401,"无权访问").asJsonString());
+                    return;
+                }
             }
 
         }
         //如果等于空
         filterChain.doFilter(request,response);
+    }
 
+    @Resource
+    AccountService accountService;
+
+    private boolean accessShell(int userId,String userRole,int clientId){
+        //如果是管理员账户，直接返回true
+        if (Const.ROLE_ADMIN.equals(userRole.substring(5))){
+            return true;
+        }else {
+            //如果是子用户，查询用户信息，看看允许访问的虚拟机列表中是否包含
+            Account account = accountService.getById(userId);
+            return account.getClientList().contains(clientId);
+        }
     }
 
 }

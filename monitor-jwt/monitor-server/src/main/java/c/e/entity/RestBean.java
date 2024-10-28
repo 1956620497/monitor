@@ -29,6 +29,11 @@ public record RestBean<T>(int code, T data, String message) {
         return new RestBean<>(code,null,message);
     }
 
+    //封装一个401的权限不足
+    public static <T> RestBean<T> noPermission(){
+        return new RestBean<>(401,null,"权限不足，拒绝访问");
+    }
+
     //变成JSON格式
     public String asJsonString(){
         return JSONObject.toJSONString(this, JSONWriter.Feature.WriteNulls);

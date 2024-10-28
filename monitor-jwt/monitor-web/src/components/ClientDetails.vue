@@ -6,7 +6,7 @@ import {get, post} from "@/net";
 import {copyIp, cpuNameToImage, fitByUnit, osNameToIcon, percentageToStatus, rename} from "@/tools";
 import {ElMessage, ElMessageBox} from "element-plus";
 import RuntimeHistory from "@/components/RuntimeHistory.vue";
-import {Delete} from "@element-plus/icons-vue";
+import {Connection, Delete} from "@element-plus/icons-vue";
 
 //组件传递信息
 const props =  defineProps({
@@ -15,7 +15,7 @@ const props =  defineProps({
 })
 
 //删除主机后通知父组件刷新
-const emits = defineEmits(['delete'])
+const emits = defineEmits(['delete','terminal'])
 
 //改名之后的重新初始化
 function updateDetails(){
@@ -145,8 +145,13 @@ function deleteCLient() {
             <i class="fa-solid fa-server"></i>
             服务器信息
           </div>
-          <el-button :icon="Delete" type="danger" plain text
-                     @click="deleteCLient">删除此主机</el-button>
+          <div>
+            <el-button :icon="Connection" type="info"
+                       @click="emits('terminal',id)" plain text>SSH远程连接</el-button>
+            <el-button :icon="Delete" type="danger" plain text style="margin-left: 0"
+                       @click="deleteCLient">删除此主机</el-button>
+          </div>
+
         </div>
 
 

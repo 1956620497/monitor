@@ -9,7 +9,7 @@ public class RenameClientVO {
 
     @NotNull
     int id;
-    @Length(min = 1,max = 10)
+    @Length(min = 1,max = 15)
     String name;
 
 }
